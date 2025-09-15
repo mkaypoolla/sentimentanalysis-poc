@@ -1,9 +1,4 @@
 streamlit
 pandas
-numpy
 plotly
-wordcloud
-requests
-beautifulsoup4
 vaderSentiment
-matplotlib

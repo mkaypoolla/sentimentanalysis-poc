@@ -6,8 +6,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import requests
 import json
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
+# Removed wordcloud and matplotlib for cloud deployment compatibility
 import io
 import base64
 
@@ -219,53 +218,59 @@ else:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("☁️ Word Cloud")
+        st.subheader("🔤 Top Keywords (Text)")
         try:
-            # Get top keywords
-            top_keywords = db.get_top_keywords(50)
+            # Get top keywords and display as text
+            top_keywords = db.get_top_keywords(20)
             
             if top_keywords:
-                # Create word cloud
-                wordcloud_dict = dict(top_keywords)
-                wordcloud = WordCloud(
-                    width=800,
-                    height=400,
-                    background_color='white',
-                    colormap='viridis'
-                ).generate_from_frequencies(wordcloud_dict)
+                keywords_text = ", ".join([f"{word} ({count})" for word, count in top_keywords[:10]])
+                st.write(f"**Most frequent keywords:** {keywords_text}")
                 
-                # Display word cloud
-                fig_wc, ax = plt.subplots(figsize=(10, 5))
-                ax.imshow(wordcloud, interpolation='bilinear')
-                ax.axis('off')
-                st.pyplot(fig_wc)
-            else:
-                st.info("No keywords available for word cloud")
-        except Exception as e:
-            st.error(f"Error generating word cloud: {str(e)}")
-    
-    with col2:
-        st.subheader("🔝 Top Keywords")
-        try:
-            top_keywords = db.get_top_keywords(15)
-            if top_keywords:
-                keywords_df = pd.DataFrame(top_keywords, columns=['Keyword', 'Frequency'])
-                
-                fig_bar = px.bar(
+                # Create a simple bar chart instead of word cloud
+                keywords_df = pd.DataFrame(top_keywords[:10], columns=['Keyword', 'Frequency'])
+                fig_keywords = px.bar(
                     keywords_df,
-                    x='Frequency',
-                    y='Keyword',
-                    orientation='h',
-                    title="Most Frequent Keywords",
+                    x='Keyword',
+                    y='Frequency',
+                    title="Top 10 Keywords",
                     color='Frequency',
                     color_continuous_scale='viridis'
                 )
-                fig_bar.update_layout(yaxis={'categoryorder': 'total ascending'})
-                st.plotly_chart(fig_bar, use_container_width=True)
+                st.plotly_chart(fig_keywords, use_container_width=True)
             else:
-                st.info("No keywords data available")
+                st.info("No keywords available")
         except Exception as e:
             st.error(f"Error displaying keywords: {str(e)}")
+    
+    with col2:
+        st.subheader("📊 Sentiment Score Distribution")
+        try:
+            # Show sentiment score statistics
+            if not df.empty:
+                score_stats = df['sentiment_score'].describe()
+                st.write("**Sentiment Score Statistics:**")
+                st.write(f"- Mean: {score_stats['mean']:.3f}")
+                st.write(f"- Median: {score_stats['50%']:.3f}")
+                st.write(f"- Std Dev: {score_stats['std']:.3f}")
+                
+                # Histogram of sentiment scores
+                fig_hist = px.histogram(
+                    df,
+                    x='sentiment_score',
+                    color='sentiment',
+                    title="Distribution of Sentiment Scores",
+                    color_discrete_map={
+                        'positive': '#28a745',
+                        'negative': '#dc3545',
+                        'neutral': '#6c757d'
+                    }
+                )
+                st.plotly_chart(fig_hist, use_container_width=True)
+            else:
+                st.info("No sentiment data available")
+        except Exception as e:
+            st.error(f"Error displaying sentiment distribution: {str(e)}")
     
     # Recent tweets feed
     st.subheader("📋 Recent Tweets Feed")
